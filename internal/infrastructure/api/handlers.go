@@ -41,7 +41,9 @@ func (h *Handlers) HandleUpload(ctx *hfw.Context) {
 		return
 	}
 
-	h.storage.Save(key, data)
+	reqCtx := ctx.Request.Context()
+
+	h.storage.Save(reqCtx, key, data)
 
 	writer.WriteHeader(http.StatusOK)
 	fmt.Fprintf(writer, "Объект %s успешно сохранен", key)
@@ -57,7 +59,9 @@ func (h *Handlers) HandleDownload(ctx *hfw.Context) {
 		return
 	}
 
-	data, exists := h.storage.Load(key)
+	reqCtx := ctx.Request.Context()
+
+	data, exists := h.storage.Load(reqCtx, key)
 
 	if !exists {
 		http.Error(writer, "Объект не найден", http.StatusNotFound)
@@ -70,8 +74,9 @@ func (h *Handlers) HandleDownload(ctx *hfw.Context) {
 
 func (h *Handlers) HandleList(ctx *hfw.Context) {
 	writer := ctx.Writer
+	reqCtx := ctx.Request.Context()
 
-	keys := h.storage.List()
+	keys := h.storage.List(reqCtx)
 
 	writer.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(writer).Encode(keys)

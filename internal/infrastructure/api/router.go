@@ -1,15 +1,16 @@
 package api
 
 import (
+	"context"
 	"log/slog"
 	"object-storage/internal/config"
 	hfw "object-storage/pkg/http"
 )
 
 type Storage interface {
-	Save(key string, data []byte)
-	Load(key string) ([]byte, bool)
-	List() []string
+	Save(ctx context.Context, key string, data []byte) error
+	Load(ctx context.Context, key string) ([]byte, bool)
+	List(ctx context.Context) []string
 }
 
 type Api struct {

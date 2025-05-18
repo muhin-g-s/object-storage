@@ -54,5 +54,7 @@ func main() {
 		return
 	}
 
+	storage.Shutdown()
+
 	logger.Info("server stopped")
 }
