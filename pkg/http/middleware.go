@@ -7,11 +7,11 @@ import (
 
 type MiddlewareFunc func(*Context, HandlerFunc)
 
-func (r *router) Use(mw ...MiddlewareFunc) {
+func (r *Router) Use(mw ...MiddlewareFunc) {
 	r.middleware = append(r.middleware, mw...)
 }
 
-func (r *router) wrapWithMiddleware(handler HandlerFunc, pattern string, method string) http.HandlerFunc {
+func (r *Router) wrapWithMiddleware(handler HandlerFunc, pattern string, method string) http.HandlerFunc {
 	finalHandler := handler
 	for i := len(r.middleware) - 1; i >= 0; i-- {
 		mw := r.middleware[i]
