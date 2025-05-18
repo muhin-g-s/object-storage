@@ -1,7 +1,9 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log/slog"
 	"net/http"
 	"object-storage/internal/config"
@@ -9,73 +11,68 @@ import (
 )
 
 type Handlers struct {
-	config *config.Config
-	logger *slog.Logger
+	config  *config.Config
+	logger  *slog.Logger
+	storage Storage
 }
 
-func NewHandlers(config *config.Config, logger *slog.Logger) *Handlers {
-	return &Handlers{config: config, logger: logger}
+func NewHandlers(config *config.Config, logger *slog.Logger, storage Storage) *Handlers {
+	return &Handlers{
+		config:  config,
+		logger:  logger,
+		storage: storage,
+	}
 }
 
-func (*Handlers) HandleUpload(ctx *hfw.Context) {
-	key := ctx.Param("id")
+func (h *Handlers) HandleUpload(ctx *hfw.Context) {
 	writer := ctx.Writer
+
+	key := ctx.Param("key")
+
+	if key == "" {
+		http.Error(writer, "Неверное имя объекта", http.StatusBadRequest)
+		return
+	}
+
+	data, err := ioutil.ReadAll(ctx.Request.Body)
+
+	if err != nil {
+		http.Error(writer, "Ошибка чтения данных", http.StatusInternalServerError)
+		return
+	}
+
+	h.storage.Save(key, data)
+
 	writer.WriteHeader(http.StatusOK)
 	fmt.Fprintf(writer, "Объект %s успешно сохранен", key)
 }
 
-// func HandleUpload(w http.ResponseWriter, r *http.Request, storage *Storage) {
-// 	if r.Method != http.MethodPost {
-// 		http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
-// 		return
-// 	}
+func (h *Handlers) HandleDownload(ctx *hfw.Context) {
+	writer := ctx.Writer
 
-// 	key := r.URL.Path[UPLOAD_PREFIX_LEN:]
+	key := ctx.Param("key")
 
-// 	data, err := ioutil.ReadAll(r.Body)
-// 	if err != nil {
-// 		http.Error(w, "Ошибка чтения данных", http.StatusInternalServerError)
-// 		return
-// 	}
+	if key == "" {
+		http.Error(writer, "Неверное имя объекта", http.StatusBadRequest)
+		return
+	}
 
-// 	storage.Save(key, data)
+	data, exists := h.storage.Load(key)
 
-// 	w.WriteHeader(http.StatusOK)
-// 	fmt.Fprintf(w, "Объект %s успешно сохранен", key)
-// }
+	if !exists {
+		http.Error(writer, "Объект не найден", http.StatusNotFound)
+		return
+	}
 
-// func HandleDownload(w http.ResponseWriter, r *http.Request, storage *Storage) {
-// 	if r.Method != http.MethodGet {
-// 		http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
-// 		return
-// 	}
+	writer.WriteHeader(http.StatusOK)
+	writer.Write(data)
+}
 
-// 	key := r.URL.Path[DOWNLOAD_PREFIX_LEN:]
+func (h *Handlers) HandleList(ctx *hfw.Context) {
+	writer := ctx.Writer
 
-// 	data, exists := storage.Load(key)
-// 	if !exists {
-// 		http.Error(w, "Объект не найден", http.StatusNotFound)
-// 		return
-// 	}
+	keys := h.storage.List()
 
-// 	w.WriteHeader(http.StatusOK)
-// 	w.Write(data)
-// }
-
-// func HandleList(w http.ResponseWriter, r *http.Request, storage *Storage) {
-// 	if r.Method != http.MethodGet {
-// 		http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
-// 		return
-// 	}
-
-// 	storage.mu.Lock()
-// 	defer storage.mu.Unlock()
-
-// 	keys := make([]string, 0, len(storage.files))
-// 	for key := range storage.files {
-// 		keys = append(keys, key)
-// 	}
-
-// 	w.Header().Set("Content-Type", "application/json")
-// 	json.NewEncoder(w).Encode(keys)
-// }
+	writer.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(writer).Encode(keys)
+}

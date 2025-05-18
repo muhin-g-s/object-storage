@@ -6,6 +6,7 @@ import (
 	"object-storage/internal/config"
 	"object-storage/internal/infrastructure/api"
 	"object-storage/internal/infrastructure/logger"
+	"object-storage/internal/services/storage"
 	"object-storage/pkg/logger/sl"
 	"os"
 	"os/signal"
@@ -19,7 +20,9 @@ func main() {
 
 	logger.Info("starting server", "address", cfg.HTTPServer.Address)
 
-	api := api.NewApi(cfg, logger)
+	storage := storage.NewStorage(logger, cfg)
+
+	api := api.NewApi(cfg, logger, storage)
 
 	srv := &http.Server{
 		Addr:    cfg.Address,

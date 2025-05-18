@@ -14,9 +14,11 @@ type Storage struct {
 	cfg    *config.Config
 }
 
-func NewStorage() *Storage {
+func NewStorage(logger *slog.Logger, cfg *config.Config) *Storage {
 	return &Storage{
-		files: make(map[string][]byte),
+		files:  make(map[string][]byte),
+		logger: logger,
+		cfg:    cfg,
 	}
 }
 
@@ -48,4 +50,16 @@ func (s *Storage) Load(key string) ([]byte, bool) {
 
 	s.files[key] = data
 	return data, true
+}
+
+func (s *Storage) List() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	keys := make([]string, 0, len(s.files))
+	for key := range s.files {
+		keys = append(keys, key)
+	}
+
+	return keys
 }
