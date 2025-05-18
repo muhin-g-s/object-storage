@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 	"log/slog"
 	"object-storage/internal/config"
+	"object-storage/pkg/logger/sl"
+	"os"
 	"sync"
 )
 
@@ -62,4 +64,15 @@ func (s *Storage) List() []string {
 	}
 
 	return keys
+}
+
+func (s *Storage) SetupStorage() {
+	storageDir := s.cfg.StorageDir
+
+	if _, err := os.Stat(storageDir); os.IsNotExist(err) {
+		err := os.Mkdir(storageDir, 0755)
+		if err != nil {
+			s.logger.Error("Ошибка создания директории %s: %v", storageDir, sl.Err(err))
+		}
+	}
 }

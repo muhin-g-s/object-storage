@@ -22,6 +22,8 @@ func main() {
 
 	storage := storage.NewStorage(logger, cfg)
 
+	storage.SetupStorage()
+
 	api := api.NewApi(cfg, logger, storage)
 
 	srv := &http.Server{
