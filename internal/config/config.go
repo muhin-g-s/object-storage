@@ -1,8 +1,17 @@
 package config
 
+type EnvType string
+
+const (
+	EnvLocal EnvType = "local"
+	EnvDev   EnvType = "dev"
+	EnvProd  EnvType = "prod"
+)
+
 type Config struct {
 	HTTPServer
 	Storage
+	Env EnvType
 }
 
 type HTTPServer struct {
