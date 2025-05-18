@@ -210,18 +210,25 @@ func (s *Storage) setFileInMap() {
 }
 
 func (s *Storage) processWriteQueue() {
+	var wg sync.WaitGroup
+
 	for {
 		select {
 		case req := <-s.writeQueue:
-			if err := s.writeToDisk(req.key, req.data); err != nil {
-				s.logger.Error("Failed to write to disk",
-					slog.String("key", req.key),
-					slog.Any("error", sl.Err(err)))
-				s.mu.Lock()
-				delete(s.files, req.key)
-				s.mu.Unlock()
-			}
+			wg.Add(1)
+			go func(r writeRequest) {
+				defer wg.Done()
+				if err := s.writeToDisk(r.key, r.data); err != nil {
+					s.logger.Error("Не удалось записать на диск",
+						slog.String("key", r.key),
+						slog.Any("error", sl.Err(err)))
+					s.mu.Lock()
+					delete(s.files, r.key)
+					s.mu.Unlock()
+				}
+			}(req)
 		case <-s.shutdown:
+			wg.Wait()
 			return
 		}
 	}
